@@ -3,7 +3,6 @@
 namespace PragmaRX\Tracker\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Illuminate\Database\UniqueConstraintViolationException;
 use PragmaRX\Tracker\Data\Repositories\Repository;
 
 class FakeModel
@@ -118,15 +117,16 @@ class RepositoryFindOrCreateTest extends TestCase
     /** @test */
     public function it_handles_race_condition_with_unique_constraint_violation()
     {
-        // First find returns null (not found)
-        // Create throws UniqueConstraintViolationException (another request inserted first)
-        // Second find returns the existing record
+        if (!class_exists(\Illuminate\Database\UniqueConstraintViolationException::class)) {
+            $this->markTestSkipped('UniqueConstraintViolationException requires Laravel 10+');
+        }
+
         $existing = new FakeModel(42);
 
         $this->repo->setFindResults([null, $existing]);
 
         $previous = new \PDOException('Duplicate entry', '23000');
-        $exception = new UniqueConstraintViolationException(
+        $exception = new \Illuminate\Database\UniqueConstraintViolationException(
             'tracker',
             'insert into tracker_devices ...',
             [],
@@ -149,23 +149,16 @@ class RepositoryFindOrCreateTest extends TestCase
     /** @test */
     public function it_handles_race_condition_with_query_exception_duplicate_entry()
     {
-        // Same scenario but with generic QueryException (older Laravel versions)
         $existing = new FakeModel(42);
 
         $this->repo->setFindResults([null, $existing]);
 
-        $previous = new \PDOException('Duplicate entry', '23000');
-        $exception = new \Illuminate\Database\QueryException(
-            'tracker',
+        $exception = $this->makeQueryException(
             'insert into tracker_devices ...',
-            [],
-            $previous
+            'Duplicate entry',
+            '23000',
+            ['23000', '1062', 'Duplicate entry']
         );
-        // Set errorInfo for MySQL duplicate entry code
-        $reflection = new \ReflectionClass($exception);
-        $prop = $reflection->getProperty('errorInfo');
-        $prop->setAccessible(true);
-        $prop->setValue($exception, ['23000', '1062', 'Duplicate entry']);
 
         $this->repo->setCreateException($exception);
 
@@ -185,17 +178,12 @@ class RepositoryFindOrCreateTest extends TestCase
     {
         $this->repo->setFindResults([null]);
 
-        $previous = new \PDOException('Connection refused', '08001');
-        $exception = new \Illuminate\Database\QueryException(
-            'tracker',
+        $exception = $this->makeQueryException(
             'insert into tracker_devices ...',
-            [],
-            $previous
+            'Connection refused',
+            '08001',
+            ['08001', '2003', 'Connection refused']
         );
-        $reflection = new \ReflectionClass($exception);
-        $prop = $reflection->getProperty('errorInfo');
-        $prop->setAccessible(true);
-        $prop->setValue($exception, ['08001', '2003', 'Connection refused']);
 
         $this->repo->setCreateException($exception);
 
@@ -206,5 +194,27 @@ class RepositoryFindOrCreateTest extends TestCase
             null,
             $created
         );
+    }
+
+    private function makeQueryException(string $sql, string $message, string $code, array $errorInfo)
+    {
+        $previous = new \PDOException($message, $code);
+
+        $ref = new \ReflectionClass(\Illuminate\Database\QueryException::class);
+        $params = $ref->getConstructor()->getParameters();
+
+        // Laravel 10+: (connectionName, sql, bindings, previous)
+        // Laravel 8-9: (sql, bindings, previous)
+        if ($params[0]->getName() === 'connectionName') {
+            $exception = new \Illuminate\Database\QueryException('tracker', $sql, [], $previous);
+        } else {
+            $exception = new \Illuminate\Database\QueryException($sql, [], $previous);
+        }
+
+        $prop = $ref->getProperty('errorInfo');
+        $prop->setAccessible(true);
+        $prop->setValue($exception, $errorInfo);
+
+        return $exception;
     }
 }
