@@ -1,6 +1,8 @@
 # Laravel Stats Tracker
 
 > **This is a maintained fork of [pragmarx/tracker](https://github.com/antonioribeiro/tracker)**, originally created by [Antonio Carlos Ribeiro](https://github.com/antonioribeiro). The original package is no longer actively maintained. This fork adds support for Laravel 10 and 11 and will continue to receive updates.
+>
+> **Now available on Packagist:** [deivide/laravel-tracker](https://packagist.org/packages/deivide/laravel-tracker)
 
 [![Latest Stable Version](https://img.shields.io/packagist/v/deivide/laravel-tracker.svg?style=flat-square)](https://packagist.org/packages/deivide/laravel-tracker) [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE) [![Downloads](https://img.shields.io/packagist/dt/deivide/laravel-tracker.svg?style=flat-square)](https://packagist.org/packages/deivide/laravel-tracker)
 
@@ -488,52 +490,81 @@ Tracker::trackVisit(
 
 ## Requirements
 
-- Laravel 5+
-- PHP 5.3.7+
-- Package "geoip/geoip":"~1.14" or "geoip2/geoip2":"~2.0"
-  (If you are planning to store Geo IP information)
-
-For Laravel 4+ please use version 2.0.10.
+- PHP >= 7.0
+- Laravel 5.x, 6.x, 7.x, 8.x, 9.x, 10.x or 11.x
+- Package `geoip/geoip:"~1.14"` or `geoip2/geoip2:"~2.0"` (optional, for Geo IP)
 
 ## Installing
 
-#### Require the `tracker` package by **executing** the following command in your command line:
+### 1. Require the package via Composer:
 
-    composer require deivide/laravel-tracker
-
-#### Add the service provider to your app/config/app.php:
-
-```php
- PragmaRX\Tracker\Vendor\Laravel\ServiceProvider::class,
+```bash
+composer require deivide/laravel-tracker
 ```
 
-#### Add the alias to the facade on your app/config/app.php:
+> **Migrating from `pragmarx/tracker`?** Just replace `pragmarx/tracker` with `deivide/laravel-tracker` in your `composer.json`. The namespace (`PragmaRX\Tracker`) remains the same — no code changes needed.
+
+### 2. Register the Service Provider (Laravel 5.4 and below)
+
+For Laravel 5.5+ the service provider is auto-discovered. For older versions, add to `config/app.php`:
 
 ```php
-'Tracker' => 'PragmaRX\Tracker\Vendor\Laravel\Facade',
+'providers' => [
+    // ...
+    PragmaRX\Tracker\Vendor\Laravel\ServiceProvider::class,
+],
 ```
 
-#### Publish tracker configuration:
-
-**Laravel 4**
-
-    php artisan config:publish pragmarx/tracker
-
-**Laravel 5**
-
-    php artisan vendor:publish --provider="PragmaRX\Tracker\Vendor\Laravel\ServiceProvider"
-
-#### Enable the Middleware (Laravel 5)
-
-Open the newly published config file found at `app/config/tracker.php` and enable `use_middleware`:
+### 3. Register the Facade (optional)
 
 ```php
-'use_middleware' => true,
+'aliases' => [
+    // ...
+    'Tracker' => PragmaRX\Tracker\Vendor\Laravel\Facade::class,
+],
 ```
 
-#### Add the Middleware to Laravel Kernel (Laravel 5)
+### 4. Publish the configuration:
 
-Open the file `app/Http/Kernel.php` and add the following to your web middlewares:
+```bash
+php artisan vendor:publish --provider="PragmaRX\Tracker\Vendor\Laravel\ServiceProvider"
+```
+
+### 5. Configure the database connection
+
+Add a `tracker` connection to `config/database.php` (you can use your existing database or a separate one):
+
+```php
+'tracker' => [
+    'driver'   => 'mysql',
+    'host'     => env('DB_HOST', '127.0.0.1'),
+    'database' => env('DB_DATABASE', 'forge'),
+    'username' => env('DB_USERNAME', 'forge'),
+    'password' => env('DB_PASSWORD', ''),
+    // ... other connection settings
+],
+```
+
+### 6. Run the migrations:
+
+```bash
+php artisan tracker:tables
+php artisan migrate
+```
+
+### 7. Enable tracking
+
+Edit `config/tracker.php` and set:
+
+```php
+'enabled' => true,
+```
+
+Then enable the features you want (`log_enabled`, `log_geoip`, etc.).
+
+### 8. Enable the Middleware (recommended)
+
+Set `use_middleware` to `true` in `config/tracker.php`, then add the middleware to `app/Http/Kernel.php`:
 
 ```php
 \PragmaRX\Tracker\Vendor\Laravel\Middlewares\Tracker::class,
