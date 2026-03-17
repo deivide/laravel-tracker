@@ -48,14 +48,14 @@ abstract class Repository implements RepositoryInterface
         return $this->result ? $this : null;
     }
 
-    public function find($id)
+    public function find($id, $withRelations = false)
     {
         list($model, $cacheKey) = $this->cache->findCached($id, null, $this->className);
 
         if (!$model) {
             $model = $this->newQuery();
 
-            if ($this->relations) {
+            if ($withRelations && $this->relations) {
                 $model->with($this->relations);
             }
 

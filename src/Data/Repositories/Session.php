@@ -15,6 +15,8 @@ class Session extends Repository
 
     private $sessionInfo;
 
+    private $currentModel;
+
     protected $relations = ['device', 'user', 'log', 'language', 'agent', 'referer', 'geoIp', 'cookie'];
 
     public function __construct($model, Config $config, SessionManager $session)
@@ -31,10 +33,14 @@ class Session extends Repository
         list($model, $cacheKey) = $this->cache->findCached($uuid, 'uuid', 'PragmaRX\Tracker\Vendor\Laravel\Models\Session');
 
         if (!$model) {
-            $model = $this->newQuery()->where('uuid', $uuid)->with($this->relations)->first();
+            $model = $this->newQuery()->where('uuid', $uuid)->first();
 
-            $this->cache->cachePut($cacheKey, $model);
+            if ($model) {
+                $this->cache->cachePut($cacheKey, $model);
+            }
         }
+
+        $this->currentModel = $model;
 
         return $model;
     }
@@ -96,12 +102,13 @@ class Session extends Repository
         if (!$known = $this->sessionIsKnown()) {
             $this->sessionSetId($this->findOrCreate($this->sessionInfo, ['uuid']));
         } else {
-            $session = $this->find($this->getSessionData('id'));
+            $model = $this->currentModel ?: $this->find($this->getSessionData('id'));
 
-            $session->updated_at = Carbon::now();
+            $model->updated_at = Carbon::now();
 
-            $session->save();
+            $model->save();
 
+            $this->currentModel = $model;
             $this->sessionInfo['id'] = $this->getSessionData('id');
         }
 
@@ -130,25 +137,25 @@ class Session extends Repository
         $sessionData = $this->getSessionData();
 
         $wasComplete = true;
+        $model = null;
 
         foreach ($this->sessionInfo as $key => $value) {
             if ($key === 'user_agent') {
                 continue;
             }
             if ($sessionData[$key] !== $value) {
-                if (!isset($model)) {
-                    $model = $this->find($this->sessionInfo['id']);
+                if (!$model) {
+                    $model = $this->currentModel ?: $this->find($this->sessionInfo['id']);
                 }
 
                 $model->setAttribute($key, $value);
-
-                $model->save();
 
                 $wasComplete = false;
             }
         }
 
-        if (!$wasComplete) {
+        if (!$wasComplete && $model) {
+            $model->save();
             $this->storeSession();
         }
     }
