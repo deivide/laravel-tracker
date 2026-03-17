@@ -490,7 +490,7 @@ Tracker::trackVisit(
 
 ## Requirements
 
-- PHP >= 7.0
+- PHP >= 8.0
 - Laravel 5.x, 6.x, 7.x, 8.x, 9.x, 10.x or 11.x
 - Package `geoip/geoip:"~1.14"` or `geoip2/geoip2:"~2.0"` (optional, for Geo IP)
 
