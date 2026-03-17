@@ -1,6 +1,6 @@
 {
-    "name": "pragmarx/tracker",
-    "description": "A Laravel Visitor Tracker",
+    "name": "deivide/laravel-tracker",
+    "description": "A Laravel Visitor Tracker - Maintained fork of pragmarx/tracker",
     "keywords": [
         "tracker",
         "tracking",
@@ -16,7 +16,12 @@
         {
             "name": "Antonio Carlos Ribeiro",
             "email": "acr@antoniocarlosribeiro.com",
-            "role": "Creator & Designer"
+            "role": "Original Creator (pragmarx/tracker)"
+        },
+        {
+            "name": "Deivide",
+            "homepage": "https://github.com/deivide",
+            "role": "Maintainer (Fork)"
         }
     ],
     "repositories": [

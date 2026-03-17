@@ -1,6 +1,8 @@
 # Laravel Stats Tracker
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/pragmarx/tracker.svg?style=flat-square)](https://packagist.org/packages/pragmarx/tracker) [![License](https://img.shields.io/badge/license-BSD_3_Clause-brightgreen.svg?style=flat-square)](LICENSE) [![Downloads](https://img.shields.io/packagist/dt/pragmarx/tracker.svg?style=flat-square)](https://packagist.org/packages/pragmarx/tracker)
+> **This is a maintained fork of [pragmarx/tracker](https://github.com/antonioribeiro/tracker)**, originally created by [Antonio Carlos Ribeiro](https://github.com/antonioribeiro). The original package is no longer actively maintained. This fork adds support for Laravel 10 and 11 and will continue to receive updates.
+
+[![Latest Stable Version](https://img.shields.io/packagist/v/deivide/laravel-tracker.svg?style=flat-square)](https://packagist.org/packages/deivide/laravel-tracker) [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE) [![Downloads](https://img.shields.io/packagist/dt/deivide/laravel-tracker.svg?style=flat-square)](https://packagist.org/packages/deivide/laravel-tracker)
 
 ### Tracker gathers a lot of information from your requests to identify and store:
 
@@ -497,7 +499,7 @@ For Laravel 4+ please use version 2.0.10.
 
 #### Require the `tracker` package by **executing** the following command in your command line:
 
-    composer require pragmarx/tracker
+    composer require deivide/laravel-tracker
 
 #### Add the service provider to your app/config/app.php:
 
