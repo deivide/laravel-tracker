@@ -1,0 +1,66 @@
+name: release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: latest_tag
+        run: |
+          git fetch --tags
+          tag=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          tag="${tag:-v0.0.0}"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          tag="${{ steps.latest_tag.outputs.tag }}"
+          version="${tag#v}"
+          IFS='.' read -r major minor patch <<< "$version"
+
+          # Check commit messages for bump keywords
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            commits=$(git log "$(git rev-list -1 "$tag")..HEAD" --pretty=format:"%s" 2>/dev/null || echo "")
+          else
+            commits=$(git log --pretty=format:"%s")
+          fi
+
+          if echo "$commits" | grep -qi '\[major\]'; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif echo "$commits" | grep -qi '\[minor\]'; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          new_version="v${major}.${minor}.${patch}"
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ steps.bump.outputs.version }}"
+
+          git tag "$version"
+          git push origin "$version"
+
+          gh release create "$version" --generate-notes --title "$version"
