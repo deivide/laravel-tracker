@@ -23,7 +23,7 @@ jobs:
         run: |
           git fetch --tags
           tag=$(git tag -l 'v*' --sort=-v:refname | head -1)
-          tag="${tag:-v0.0.0}"
+          tag="${tag:-v3.3.0}"
           echo "tag=$tag" >> $GITHUB_OUTPUT
 
       - name: Determine version bump
