@@ -116,26 +116,52 @@ abstract class Repository implements RepositoryInterface
         list($model, $cacheKey) = $this->cache->findCached($attributes, $keys, $this->className);
 
         if (!$model) {
-            $model = $this->newQuery($otherModel);
-
             $keys = $keys ?: array_keys($attributes);
 
-            foreach ($keys as $key) {
-                $model = $model->where($key, $attributes[$key]);
+            $model = $this->findByKeys($attributes, $keys, $otherModel);
+
+            if (!$model) {
+                try {
+                    $model = $this->create($attributes, $otherModel);
+                    $created = true;
+                } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                    $model = $this->findByKeys($attributes, $keys, $otherModel);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    if ($this->isDuplicateEntryException($e)) {
+                        $model = $this->findByKeys($attributes, $keys, $otherModel);
+                    } else {
+                        throw $e;
+                    }
+                }
             }
 
-            if (!$model = $model->first()) {
-                $model = $this->create($attributes, $otherModel);
-
-                $created = true;
+            if ($model) {
+                $this->cache->cachePut($cacheKey, $model);
             }
-
-            $this->cache->cachePut($cacheKey, $model);
         }
 
         $this->model = $model;
 
         return $model->id;
+    }
+
+    protected function findByKeys($attributes, $keys, $otherModel = null)
+    {
+        $query = $this->newQuery($otherModel);
+
+        foreach ($keys as $key) {
+            $query = $query->where($key, $attributes[$key]);
+        }
+
+        return $query->first();
+    }
+
+    protected function isDuplicateEntryException(\Illuminate\Database\QueryException $e)
+    {
+        $code = (string) $e->errorInfo[1] ?? '';
+
+        // MySQL: 1062, PostgreSQL: 23505, SQLite: 19
+        return in_array($code, ['1062', '23505', '19']);
     }
 
     public function getModel()
