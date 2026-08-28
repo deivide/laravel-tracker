@@ -286,7 +286,13 @@ class Session extends Repository
 
     public function getCurrent()
     {
-        return $this->getModel();
+        // getModel() returns whichever model this repository touched last, and
+        // in the "session is known" branch nothing touches it: sessionIsKnown()
+        // resolves through findByUuid(), which fills only $currentModel, and the
+        // find() below is skipped precisely because of it. Every visitor that
+        // already had a session therefore got a blank model back — no id, no
+        // geoIp, no agent. $currentModel is the current session; ask it first.
+        return $this->currentModel ?: $this->getModel();
     }
 
     public function updateSessionData($data)
